@@ -15,6 +15,7 @@ public partial class CollectionSystem : SystemBase
                     if (HasComponent<Collectable>(entity) && !HasComponent<Kill>(entity))
                     {
                         endSimBufferSystem.AddComponent(entity, new Kill { Timer = 0 });
+                        GameManager.Instance.AddScore(GetComponent<Collectable>(entity).Points);
                     }
 
                     if (HasComponent<PowerPill>(entity) && !HasComponent<Kill>(entity))
@@ -23,6 +24,6 @@ public partial class CollectionSystem : SystemBase
                         endSimBufferSystem.AddComponent(entity, new Kill { Timer = 0 });
                     }
                 }
-            }).Run();
+            }).WithoutBurst().Run();
     }
 }
