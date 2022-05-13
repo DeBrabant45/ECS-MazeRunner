@@ -1,4 +1,5 @@
 ﻿using Unity.Entities;
+using Unity.Transforms;
 
 public partial class DamageSystem : SystemBase
 {
@@ -28,16 +29,27 @@ public partial class DamageSystem : SystemBase
     private void DestroyEntity(float deltaTime)
     {
         var endSimBufferSystem = World.GetOrCreateSystem<EndSimulationEntityCommandBufferSystem>();
-        var endSimBuffer = endSimBufferSystem.CreateCommandBuffer().AsParallelWriter();
-        Entities.ForEach((Entity entity, int entityInQueryIndex, ref Kill kill) =>
+        var endSimBuffer = endSimBufferSystem.CreateCommandBuffer();
+        Entities.ForEach((Entity entity, ref Kill kill, in Translation tranform, in Rotation rotation) =>
         {
+            if (HasComponent<OnKill>(entity))
+            {
+                var onKill = GetComponent<OnKill>(entity);
+                AudioManager.Instance.PlaySFXRequest(onKill.SFXName.ToString());
+                GameManager.Instance.AddScore(onKill.Point);
+                if (EntityManager.Exists(onKill.SpawnPrefab))
+                {
+                    var sapwnedEntity = endSimBuffer.Instantiate(onKill.SpawnPrefab);
+                    endSimBuffer.AddComponent(sapwnedEntity, tranform);
+                    endSimBuffer.AddComponent(sapwnedEntity, rotation);
+                }
+            }
             kill.Timer -= deltaTime;
             if (kill.Timer <= 0)
             {
-                endSimBuffer.DestroyEntity(entityInQueryIndex, entity);
+                endSimBuffer.DestroyEntity(entity);
             }
-        }).Schedule();
-        endSimBufferSystem.AddJobHandleForProducer(this.Dependency);
+        }).WithoutBurst().Run();
     }
 
     private void AddKillComponent(float deltaTime)
