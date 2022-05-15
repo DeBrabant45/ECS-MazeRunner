@@ -32,21 +32,21 @@ public partial class DamageSystem : SystemBase
         var endSimBuffer = endSimBufferSystem.CreateCommandBuffer();
         Entities.ForEach((Entity entity, ref Kill kill, in Translation tranform, in Rotation rotation) =>
         {
-            if (HasComponent<OnKill>(entity))
-            {
-                var onKill = GetComponent<OnKill>(entity);
-                AudioManager.Instance.PlaySFXRequest(onKill.SFXName.ToString());
-                GameManager.Instance.AddScore(onKill.Point);
-                if (EntityManager.Exists(onKill.SpawnPrefab))
-                {
-                    var sapwnedEntity = endSimBuffer.Instantiate(onKill.SpawnPrefab);
-                    endSimBuffer.AddComponent(sapwnedEntity, tranform);
-                    endSimBuffer.AddComponent(sapwnedEntity, rotation);
-                }
-            }
             kill.Timer -= deltaTime;
             if (kill.Timer <= 0)
             {
+                if (HasComponent<OnKill>(entity))
+                {
+                    var onKill = GetComponent<OnKill>(entity);
+                    AudioManager.Instance.PlaySFXRequest(onKill.SFXName.ToString());
+                    GameManager.Instance.AddScore(onKill.Point);
+                    if (EntityManager.Exists(onKill.SpawnPrefab))
+                    {
+                        var sapwnedEntity = endSimBuffer.Instantiate(onKill.SpawnPrefab);
+                        endSimBuffer.AddComponent(sapwnedEntity, tranform);
+                        endSimBuffer.AddComponent(sapwnedEntity, rotation);
+                    }
+                }
                 endSimBuffer.DestroyEntity(entity);
             }
         }).WithoutBurst().Run();

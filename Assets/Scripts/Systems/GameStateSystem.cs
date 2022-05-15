@@ -1,5 +1,6 @@
-﻿using Unity.Entities;
-using UnityEngine;
+﻿using Unity.Collections;
+using Unity.Entities;
+using Unity.Physics;
 
 [AlwaysUpdateSystem]
 public partial class GameStateSystem : SystemBase
@@ -8,13 +9,46 @@ public partial class GameStateSystem : SystemBase
     {
         var pelletQuery = GetEntityQuery(ComponentType.ReadOnly<Pellet>());
         var playerQuery = GetEntityQuery(ComponentType.ReadOnly<Player>());
-        if (pelletQuery.CalculateEntityCount() <= 0)
+        var pelletCount = pelletQuery.CalculateEntityCount();
+        if (playerQuery.CalculateEntityCount() > 0)
         {
-            GameManager.Instance.Win();
+            GameManager.Instance.SetPelletCount(pelletCount);
         }
-        if (playerQuery.CalculateEntityCount() <= 0)
+        if (pelletCount <= 0)
         {
-            GameManager.Instance.Lose();
+            RemovePhysicsOnWin();
         }
+        SetLoseState();
+    }
+
+    private void RemovePhysicsOnWin()
+    {
+        Entities
+            .WithAll<PhysicsVelocity>()
+            .ForEach((Entity entity) =>
+            {
+                EntityManager.RemoveComponent<PhysicsVelocity>(entity);
+            }).WithStructuralChanges().Run();
+    }
+
+    private void SetLoseState()
+    {
+        var enemyQuery = GetEntityQuery(ComponentType.ReadOnly<Enemy>());
+        Entities
+            .WithAll<Player, Movable>()
+            .ForEach((Entity entity, in Kill kill) =>
+            {
+                EntityManager.RemoveComponent<Movable>(entity);
+                EntityManager.RemoveComponent<PhysicsVelocity>(entity);
+                GameManager.Instance.LoseLife();
+                var enemyArray = enemyQuery.ToEntityArray(Allocator.TempJob);
+                foreach (var enenmyEnity in enemyArray)
+                {
+                    EntityManager.AddComponentData(enenmyEnity, kill);
+                    EntityManager.RemoveComponent<Movable>(enenmyEnity);
+                    EntityManager.RemoveComponent<PhysicsVelocity>(enenmyEnity);
+                }
+                enemyArray.Dispose();
+            }).WithStructuralChanges().Run();
     }
 }

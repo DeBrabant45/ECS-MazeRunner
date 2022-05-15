@@ -64,7 +64,7 @@ public partial class EnemySystem : SystemBase
             var ray = new RaycastInput()
             {
                 Start = position,
-                End = position + (direction * 0.9f),
+                End = position + (direction * 0.7f),
                 Filter = new CollisionFilter()
                 {
                     GroupIndex = 0,
